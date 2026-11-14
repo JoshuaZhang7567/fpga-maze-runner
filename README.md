@@ -1,1 +1,1 @@
-# FPGA Maze Search Engine
+# FPGA Maze Runner
