@@ -43,12 +43,18 @@ module rect_drawer(resetn, clock, enable, h, w, x, y, color, done, vga_x, vga_y,
 endmodule
 
 // Draw a DIM*DIM maze on the VGA Display
-module maze_drawer(resetn, clock, enable, x, y, done, vga_x, vga_y, vga_color, vga_write);
+module maze_drawer(resetn, clock, enable, maze_cell_color, maze_addr, x, y, done, vga_x, vga_y, vga_color, vga_write);
     input resetn, clock, enable;
+
+    // maze_cell_color: the color code name read from the maze_ram
+    // maze_addr: the address of the maze_ram that we wanna read
+    // since address is calculated inside maze_drawer, we need to provide a output of maze_addr to ram in order to get color input
+    input [2:0] maze_cell_color;
+    output [13:0] maze_addr;
     // ! Assume the resolution of the display is 640*480
-    parameter DIM = 16;
+    parameter DIM_X = 16;
+    parameter DIM_Y = 16;
     parameter SCALE_FACTOR = 16;
-    parameter MAZE = "MAZE_1.mif";
 
     // x: x coord. of the left top cornor
     // y: y coord. of the left top cornor
@@ -64,8 +70,8 @@ module maze_drawer(resetn, clock, enable, x, y, done, vga_x, vga_y, vga_color, v
     // (cx, cy) represents the logic pixel coordinate of a cell
     // each cell is then mapped into SCALE_FACTOR**2 physical pixels
     // Here 6 bit should be enough for 16x16 or 32x32 maze
-    wire [5:0] cx;
-    wire [5:0] cy;
+    wire [7:0] cx;
+    wire [6:0] cy;
 
     // rect_drawer_enable: while iterator is in RUN state, let rect drawer do its work
     // rect_done: when rect_draw finishes all the work, the rect_done signal is then connected to 'enable' port of iterator_2d, updating the iterator
@@ -75,27 +81,28 @@ module maze_drawer(resetn, clock, enable, x, y, done, vga_x, vga_y, vga_color, v
         .clock(clock),
         .start(enable),
         .enable(rect_done),
-        .dimX(DIM),
-        .dimY(DIM),
+        .dimX(DIM_X),
+        .dimY(DIM_Y),
         .col(cx),
         .row(cy),
         .done(done),
         .run(rect_drawer_enable)
     );
-        defparam cell_iterator.NX = 6;
-        defparam cell_iterator.NY = 6;
+        defparam cell_iterator.NX = 8;
+        defparam cell_iterator.NY = 7;
 
-    // !!! if each cell color could be more than just black and white, This line should be updated
-    wire [9:0] addr = cy*DIM + cx; // Similar as how we get memory address in c
-
-    // TODO: Read MIF
+    assign maze_addr = cy*DIM_X + cx; // Similar as how we get memory address in c
 
     // (px, py) represent the physical pixel coordinate
     // 10bit/9bit must be enough for px/py, if it doesn't, that means something else is screwed up and make the cell outside of the physical screen
     wire [9:0] px = x + cx * SCALE_FACTOR;
     wire [8:0] py = y + cy * SCALE_FACTOR;
 
-    // TODO: cell_color_decoder
+    wire [8:0] cell_color;
+    cell_color_decoder cell_color_decoder (
+        .color_code(maze_cell_color),
+        .color(cell_color)
+    );
 
     rect_drawer cell_drawer (
         .resetn(resetn),
@@ -105,7 +112,7 @@ module maze_drawer(resetn, clock, enable, x, y, done, vga_x, vga_y, vga_color, v
         .w(SCALE_FACTOR),
         .x(px),
         .y(py),
-        .color(), // TODO:
+        .color(cell_color),
         .done(rect_done),
         .vga_x(vga_x),
         .vga_y(vga_y),
@@ -114,12 +121,40 @@ module maze_drawer(resetn, clock, enable, x, y, done, vga_x, vga_y, vga_color, v
     );
 endmodule
 
-// Translate color from 2bit codename to 3bit depth RGB value
+// Translate color from 3bit codename to 3bit depth RGB value
 // should be pure combinational logic
-module cell_color_decoder(mem_value, color);
-    input [1:0] mem_value;
-    output [8:0] color;
-    // TODO
+module cell_color_decoder(color_code, color);
+    input [2:0] color_code;
+    output reg [8:0] color;
+
+    parameter WALL    = 9'b111_111_111; // white
+    parameter OPEN    = 9'b000_000_000; // black
+    parameter START   = 9'b000_111_111; // cyan
+    parameter GOAL    = 9'b111_000_111; // violet
+    parameter VISITED = 9'b000_000_111; // blue
+    parameter CURRENT = 9'b111_111_000; // yellow
+    parameter PATH    = 9'b000_111_000; // green
+
+    parameter CODE_WALL    = 3'b000;
+    parameter CODE_OPEN    = 3'b001;
+    parameter CODE_START   = 3'b010;
+    parameter CODE_GOAL    = 3'b011;
+    parameter CODE_VISITED = 3'b100;
+    parameter CODE_CURRENT = 3'b101;
+    parameter CODE_PATH    = 3'b110;
+
+    always @ (*) begin
+        case(color_code)
+            CODE_WALL: color = WALL;
+            CODE_OPEN: color = OPEN;
+            CODE_START: color = START;
+            CODE_GOAL: color = GOAL;
+            CODE_VISITED: color = VISITED;
+            CODE_CURRENT: color = CURRENT;
+            CODE_PATH: color = PATH;
+            default: color = OPEN;
+        endcase
+    end
 endmodule
 
 // Similar to a double loop that iterate through dimX*dimY
