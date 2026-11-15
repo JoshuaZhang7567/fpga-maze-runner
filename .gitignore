@@ -1,12 +1,10 @@
 # ---------------------------------------------------------------
 # Quartus project files
-# Each of us keeps our own local project. If we later want to share
-# pin assignments, remove the *.qsf line and commit the .qsf.
+# The .qpf (project) and .qsf (settings + pin assignments) ARE
+# committed, so a fresh clone opens and compiles as-is.
+# Only per-user workspace / defaults files are ignored.
 # ---------------------------------------------------------------
-*.qpf
-*.qsf
 *.qws
-*.qdf
 *_assignment_defaults.qdf
 
 # ---------------------------------------------------------------
@@ -38,20 +36,13 @@ c5_pin_model_dump.txt
 PLLJ_PLLSPE_INFO.txt
 
 # ---------------------------------------------------------------
-# Platform Designer / IP Catalog generated output
-# Keep the .qsys / .ip source files (they define the IP config);
-# ignore everything generated from them - regenerate with "Generate HDL".
+# Platform Designer / IP Catalog
+# The generated synthesis output (ps2_ip/synthesis/, incl. the .qip)
+# IS committed so a fresh clone compiles without "Generate HDL".
+# If you change ps2_ip.qsys, regenerate and commit the new output.
 # ---------------------------------------------------------------
 *.sopcinfo
-*.qip
-*.spd
-*.bsf
-*.cmp
-*.ppf
-*/synthesis/
-*/simulation/
-ip/**/sim/
-ip/**/synth/
+*_generation.rpt
 
 # ---------------------------------------------------------------
 # Simulation (ModelSim / Questa / Icarus)
