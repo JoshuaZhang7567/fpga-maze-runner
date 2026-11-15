@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------
+# Quartus project files
+# Each of us keeps our own local project. If we later want to share
+# pin assignments, remove the *.qsf line and commit the .qsf.
+# ---------------------------------------------------------------
+*.qpf
+*.qsf
+*.qws
+*.qdf
+*_assignment_defaults.qdf
+
+# ---------------------------------------------------------------
+# Quartus build output
+# ---------------------------------------------------------------
+db/
+incremental_db/
+output_files/
+qdb/
+tmp-clearbox/
+greybox_tmp/
+hc_output/
+.qsys_edit/
+*.rpt
+*.summary
+*.smsg
+*.done
+*.jdi
+*.pin
+*.pof
+*.sof
+*.rbf
+*.sld
+*.cdf
+*.map
+*.qarlog
+*.qar
+c5_pin_model_dump.txt
+PLLJ_PLLSPE_INFO.txt
+
+# ---------------------------------------------------------------
+# Platform Designer / IP Catalog generated output
+# Keep the .qsys / .ip source files (they define the IP config);
+# ignore everything generated from them - regenerate with "Generate HDL".
+# ---------------------------------------------------------------
+*.sopcinfo
+*.qip
+*.spd
+*.bsf
+*.cmp
+*.ppf
+*/synthesis/
+*/simulation/
+ip/**/sim/
+ip/**/synth/
+
+# ---------------------------------------------------------------
+# Simulation (ModelSim / Questa / Icarus)
+# ---------------------------------------------------------------
+work/
+simulation/
+transcript
+*.wlf
+vsim.wlf
+*.vcd
+*.vvp
+modelsim.ini
+*.mpf
+*.cr.mti
+
+# ---------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+*.bak
+*~
