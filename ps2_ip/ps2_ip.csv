@@ -1,0 +1,25 @@
+# system info ps2_ip on 2026.11.15.17:34:39
+system_info:
+name,value
+DEVICE,5CSEMA5F31C6
+DEVICE_FAMILY,Cyclone V
+GENERATION_ID,1794782077
+#
+#
+# Files generated for ps2_ip on 2026.11.15.17:34:39
+files:
+filepath,kind,attributes,module,is_top
+simulation/ps2_ip.v,VERILOG,,ps2_ip,true
+simulation/submodules/altera_up_ps2.v,VERILOG,,ps2_ip_ps2_0,false
+simulation/submodules/altera_up_ps2_command_out.v,VERILOG,,ps2_ip_ps2_0,false
+simulation/submodules/altera_up_ps2_data_in.v,VERILOG,,ps2_ip_ps2_0,false
+simulation/submodules/ps2_ip_ps2_0.v,VERILOG,,ps2_ip_ps2_0,false
+simulation/submodules/altera_reset_controller.v,VERILOG,,altera_reset_controller,false
+simulation/submodules/altera_reset_synchronizer.v,VERILOG,,altera_reset_controller,false
+simulation/submodules/altera_reset_controller.sdc,SDC,,altera_reset_controller,false
+#
+# Map from instance-path to kind of module
+instances:
+instancePath,module
+ps2_ip.ps2_0,ps2_ip_ps2_0
+ps2_ip.rst_controller,altera_reset_controller
