@@ -6,7 +6,7 @@ JedecChain;
 	P ActionCode(Ign)
 		Device PartName(SOCVHPS) MfrSpec(OpMask(0));
 	P ActionCode(Cfg)
-		Device PartName(5CSEMA5F31) Path("W:/ECE241/fpga-maze-runner/output_files/") File("fpga-maze-runner.sof") MfrSpec(OpMask(1));
+		Device PartName(5CSEMA5F31) Path("W:/ECE241/fpga-maze-runner/quartus/output_files/") File("fpga-maze-runner.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 

@@ -885,13 +885,13 @@ set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_ODT -en
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_RAS_N -entity DE1_SoC
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_RESET_N -entity DE1_SoC
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_WE_N -entity DE1_SoC
-set_global_assignment -name VERILOG_FILE keyboard/ps2_ip/synthesis/ps2_ip.v
-set_global_assignment -name VERILOG_FILE keyboard/keyboard_test.v
-set_global_assignment -name VERILOG_FILE keyboard/keyboard.v
-set_global_assignment -name VERILOG_FILE maze_ram.v
-set_global_assignment -name QSYS_FILE keyboard/ps2_ip.qsys
-set_global_assignment -name VERILOG_FILE visualization.v
-set_global_assignment -name VERILOG_FILE counter.v
+set_global_assignment -name VERILOG_FILE ../keyboard/ps2_ip/synthesis/ps2_ip.v
+set_global_assignment -name VERILOG_FILE ../keyboard/keyboard_test.v
+set_global_assignment -name VERILOG_FILE ../keyboard/keyboard.v
+set_global_assignment -name VERILOG_FILE ../maze_ram.v
+set_global_assignment -name QSYS_FILE ../keyboard/ps2_ip.qsys
+set_global_assignment -name VERILOG_FILE ../visualization.v
+set_global_assignment -name VERILOG_FILE ../counter.v
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
