@@ -1,1 +1,0 @@
-set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) ps2_ip/ps2_ip.qip]
