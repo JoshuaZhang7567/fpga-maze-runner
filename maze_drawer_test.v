@@ -26,14 +26,6 @@ module maze_drawer_test(CLOCK_50, KEY, SW, LEDR,
     parameter ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
     parameter ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
 
-    // MAZE_1.mif is 1 bit wide with 1 = wall, 0 = open, but cell_color_decoder expects
-    // 3-bit codes where 000 = wall, 001 = open. Set to 0 once the MIF holds real color codes.
-    parameter MIF_IS_1BIT = 1;
-
-    // Start/goal are not stored in MAZE_1.mif; paint them here so START/GOAL colors get tested.
-    parameter START_ADDR = 1 * DIM_X + 1;     // (x, y) = (1, 1)
-    parameter GOAL_ADDR  = 29 * DIM_X + 29;   // (x, y) = (29, 29)
-
     wire resetn = KEY[0];
 
     // ---------------------------------------------------------------------------------
@@ -65,27 +57,8 @@ module maze_drawer_test(CLOCK_50, KEY, SW, LEDR,
         .q_b(ram_q)
     );
 
-    // maze_ram registers both the address and the output, so ram_q belongs to the address
-    // from 2 cycles ago. Delay the address the same amount to know which cell ram_q is.
-    reg [13:0] addr_d1, addr_d2;
-    always @ (posedge CLOCK_50) begin
-        addr_d1 <= maze_addr;
-        addr_d2 <= addr_d1;
-    end
-
-    reg [2:0] cell_code;
-    always @ (*) begin
-        if (SW[3])
-            cell_code = SW[2:0];
-        else if (addr_d2 == START_ADDR)
-            cell_code = 3'b010;
-        else if (addr_d2 == GOAL_ADDR)
-            cell_code = 3'b011;
-        else if (MIF_IS_1BIT)
-            cell_code = ram_q[0] ? 3'b000 : 3'b001;
-        else
-            cell_code = ram_q;
-    end
+    // MAZE_1.mif already holds 3-bit color codes (including start and goal)
+    wire [2:0] cell_code = SW[3] ? SW[2:0] : ram_q;
 
     // ---------------------------------------------------------------------------------
     // Device under test
