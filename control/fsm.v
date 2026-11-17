@@ -64,18 +64,22 @@ module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell
     // Y_Q: NS
     reg [3:0] y_Q, Y_Q;
 
-    wire w_pressed, a_pressed, s_pressed, d_pressed, enter_pressed;
+    // action: {release, key}, valid for 1 cycle per key event; 1111 = no action
+    wire [3:0] action;
     key_decoder key_decoder (
         .clock(clock),
         .resetn(resetn),
-        .kb_data(kb_data),
-        .kb_valid(kb_valid),
-        .w_pressed(w_pressed),
-        .a_pressed(a_pressed),
-        .s_pressed(s_pressed),
-        .d_pressed(d_pressed),
-        .enter_pressed(enter_pressed)
+        .data(kb_data),
+        .data_valid(kb_valid),
+        .action(action)
     );
+
+    // only key presses (release bit = 0) move the cursor or confirm
+    wire w_pressed     = (action == 4'b0000); // W / Up
+    wire a_pressed     = (action == 4'b0001); // A / Left
+    wire s_pressed     = (action == 4'b0010); // S / Down
+    wire d_pressed     = (action == 4'b0011); // D / Right
+    wire enter_pressed = (action == 4'b0100); // Space confirms (the decoder has no Enter)
 
     // picking_dest: 1 if the start is picked and we are picking the destination
     // dest_picked: 1 if the destination is picked
