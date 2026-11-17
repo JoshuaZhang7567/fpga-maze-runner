@@ -1,6 +1,6 @@
 -- 32x32 maze, 3-bit color codes (see cell_color_decoder in visualization.v)
 -- 000 wall, 001 open, 010 start, 011 goal, 100 visited, 101 current, 110 path
--- address = y*32 + x; start = (1, 1), goal = (29, 29) as (x, y)
+-- address = y*32 + x; there is no start or goal here, they are picked with the keyboard (point_select_fsm)
 -- addresses 1024..12287 are unused and filled with wall
 WIDTH=3;
 DEPTH=12288;
@@ -42,7 +42,7 @@ CONTENT BEGIN
 	30 : 000;
 	31 : 000;
 	32 : 000;
-	33 : 010;
+	33 : 001;
 	34 : 001;
 	35 : 001;
 	36 : 000;
@@ -966,7 +966,7 @@ CONTENT BEGIN
 	954 : 001;
 	955 : 001;
 	956 : 001;
-	957 : 011;
+	957 : 001;
 	958 : 000;
 	959 : 000;
 	960 : 000;
