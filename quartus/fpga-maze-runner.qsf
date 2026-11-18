@@ -39,7 +39,7 @@
 
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEMA5F31C6
-set_global_assignment -name TOP_LEVEL_ENTITY keyboard_test
+set_global_assignment -name TOP_LEVEL_ENTITY top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 23.1STD.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:20:30  NOVEMBER 15, 2026"
 set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
@@ -885,13 +885,22 @@ set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_ODT -en
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_RAS_N -entity DE1_SoC
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_RESET_N -entity DE1_SoC
 set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to HPS_DDR3_WE_N -entity DE1_SoC
+set_global_assignment -name VERILOG_FILE ../top.v
+set_global_assignment -name VERILOG_FILE ../control/fsm.v
 set_global_assignment -name VERILOG_FILE ../keyboard/ps2_ip/synthesis/ps2_ip.v
-set_global_assignment -name VERILOG_FILE ../keyboard/keyboard_test.v
-set_global_assignment -name VERILOG_FILE ../keyboard/keyboard.v
-set_global_assignment -name VERILOG_FILE ../maze_ram.v
 set_global_assignment -name QSYS_FILE ../keyboard/ps2_ip.qsys
-set_global_assignment -name VERILOG_FILE ../visualization.v
+set_global_assignment -name VERILOG_FILE ../keyboard/keyboard.v
+set_global_assignment -name VERILOG_FILE ../keyboard/key_decoder.v
+set_global_assignment -name VERILOG_FILE ../keyboard/testbench/keyboard_test.v
+set_global_assignment -name VERILOG_FILE ../maze_ram.v
+set_global_assignment -name MIF_FILE ../MAZE_1.mif
+set_global_assignment -name VERILOG_FILE ../monitor/monitor.v
 set_global_assignment -name VERILOG_FILE ../counter.v
+set_global_assignment -name VERILOG_FILE ../maze_drawer_test.v
+set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_adapter.v
+set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_address_translator.v
+set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_controller.v
+set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_pll.v
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top

@@ -1,5 +1,5 @@
 module keyboard(clock, resetn, kb_clock_pin, kb_data_pin, data, data_valid);
-    
+
 	input clock, resetn;
 	output [7:0] data;
 	output data_valid;
@@ -18,4 +18,3 @@ module keyboard(clock, resetn, kb_clock_pin, kb_data_pin, data, data_valid);
 		.reset_reset_n       (resetn)        //                         reset.reset_n
 	);
 endmodule
-
