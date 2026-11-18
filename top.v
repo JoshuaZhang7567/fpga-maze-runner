@@ -1,14 +1,14 @@
 // Top level board test (DE1-SoC): draw the maze, then pick a start and a destination with the keyboard
 //   After reset the maze (MAZE_1.mif, 32x32) is drawn with a yellow cursor at (1, 1)
-//   W/A/S/D = move the cursor, Enter = confirm the start (cyan), then the destination (violet)
+//   W/A/S/D or arrows = move the cursor, Space = confirm the start (cyan), then the destination (violet)
 //   ! The search core is not built yet, KEY[1] pretends that it finished
 //
 //   KEY[0]    = reset (hold down to reset)
 //   KEY[1]    = pretend the search core finished (RUN_SIM -> DONE)
-//   LEDR[3:0] = state of point_select_fsm (see the FSM States in point_select_fsm.v)
+//   LEDR[3:0] = state of point_select_fsm (see the FSM States in control/fsm.v)
 //   LEDR[4]   = show_cursor
 //   LEDR[8]   = core_start was seen (start and destination are both picked)
-//   LEDR[9]   = flips every time a byte arrives from the keyboard
+//   LEDR[9]   = flips on every key event (W/A/S/D, arrows, Space; press or release)
 module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
            VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
     input CLOCK_50;
@@ -31,17 +31,15 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
 
     wire resetn = KEY[0];
 
-    // kb_data: the byte received from the keyboard
-    // kb_valid: 1 for one cycle when kb_data is a new byte
-    wire [7:0] kb_data;
-    wire kb_valid;
+    // action from keyboard decoder
+    wire [3:0] action;
+
     keyboard keyboard (
         .clock(CLOCK_50),
         .resetn(resetn),
         .kb_clock_pin(PS2_CLK),
         .kb_data_pin(PS2_DAT),
-        .data(kb_data),
-        .data_valid(kb_valid)
+        .action(action)
     );
 
     // ---------------------------------------------------------------------------------
@@ -80,8 +78,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     top_fsm point_select_fsm (
         .clock(CLOCK_50),
         .resetn(resetn),
-        .kb_data(kb_data),
-        .kb_valid(kb_valid),
+        .action(action),
         .draw_done(draw_done),
         .core_done(core_done),
         .maze_cell_color(fsm_cell_color),
@@ -165,7 +162,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     // Status LEDs
     // ---------------------------------------------------------------------------------
     // started: 1 if core_start was seen
-    // toggle: flips every time a byte arrives from the keyboard
+    // toggle: flips on every key event from the keyboard (action != NONE)
     reg started, toggle;
     always @ (posedge CLOCK_50) begin
         if(!resetn) begin
@@ -174,7 +171,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         end
         else begin
             if(core_start) started <= 1'b1;
-            if(kb_valid) toggle <= ~toggle;
+            if(action != 4'b1111) toggle <= ~toggle;
         end
     end
 

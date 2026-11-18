@@ -1,7 +1,7 @@
-// Top level control: draw the maze, pick a start and a destination with W/A/S/D + Enter, then start the search core
+// Top level control: draw the maze, pick a start and a destination with W/A/S/D + Space, then start the search core
 // The start and destination are written into maze_ram as START/GOAL, then maze_drawer redraws the whole maze
 // The cursor is NOT written into maze_ram: the top level shows it on top of the maze while show_cursor is 1
-module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell_color,
+module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
                         maze_addr, maze_data, maze_wren, draw_start, core_start, show_cursor,
                         start_x, start_y, dest_x, dest_y, cursor_x, cursor_y, state);
     // ! DIM_X, DIM_Y must be the same as the ones in maze_drawer, otherwise maze_addr points at the wrong cell
@@ -9,12 +9,6 @@ module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell
     parameter DIM_Y = 32;
 
     input clock, resetn;
-
-    // kb_data: the byte received from the keyboard
-    // kb_valid: 1 for one cycle when kb_data is a new byte
-    // both of them come straight from keyboard.v
-    input [7:0] kb_data;
-    input kb_valid;
 
     // draw_done: 1 for one cycle when maze_drawer finishes a redraw
     // core_done: 1 for one cycle when the search core finishes
@@ -46,6 +40,9 @@ module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell
     // state: current state, for LEDs
     output [3:0] state;
 
+    // action: from the decoder
+    input [3:0] action;
+
     // Color codes, same as cell_color_decoder
     parameter CODE_WALL    = 3'b000;
     parameter CODE_START   = 3'b010;
@@ -64,22 +61,12 @@ module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell
     // Y_Q: NS
     reg [3:0] y_Q, Y_Q;
 
-    // action: {release, key}, valid for 1 cycle per key event; 1111 = no action
-    wire [3:0] action;
-    key_decoder key_decoder (
-        .clock(clock),
-        .resetn(resetn),
-        .data(kb_data),
-        .data_valid(kb_valid),
-        .action(action)
-    );
-
     // only key presses (release bit = 0) move the cursor or confirm
     wire w_pressed     = (action == 4'b0000); // W / Up
     wire a_pressed     = (action == 4'b0001); // A / Left
     wire s_pressed     = (action == 4'b0010); // S / Down
     wire d_pressed     = (action == 4'b0011); // D / Right
-    wire enter_pressed = (action == 4'b0100); // Space confirms (the decoder has no Enter)
+    wire space_pressed = (action == 4'b0100); // Space confirms (the decoder has no Enter)
 
     // picking_dest: 1 if the start is picked and we are picking the destination
     // dest_picked: 1 if the destination is picked
@@ -102,14 +89,14 @@ module top_fsm(clock, resetn, kb_data, kb_valid, draw_done, core_done, maze_cell
     wire cursor_move = (next_x != cursor_x) | (next_y != cursor_y);
 
     // on_start: 1 if the cursor is on the start
-    // start_valid: 1 if Enter is pressed on a cell that is not a wall
-    // dest_valid: 1 if Enter is pressed on a cell that is neither a wall nor the start
+    // start_valid: 1 if Space is pressed on a cell that is not a wall
+    // dest_valid: 1 if Space is pressed on a cell that is neither a wall nor the start
     //
     // maze_cell_color can be used directly: maze_addr has been pointing at the cursor for the whole redraw,
     // so the 1 cycle delay of maze_ram is long over when we are back in PICK_START/PICK_DEST
     wire on_start = (cursor_x == start_x) & (cursor_y == start_y);
-    wire start_valid = enter_pressed & (maze_cell_color != CODE_WALL);
-    wire dest_valid = enter_pressed & (maze_cell_color != CODE_WALL) & ~on_start;
+    wire start_valid = space_pressed & (maze_cell_color != CODE_WALL);
+    wire dest_valid = space_pressed & (maze_cell_color != CODE_WALL) & ~on_start;
 
     // Next state logic
     always @ (*) begin
