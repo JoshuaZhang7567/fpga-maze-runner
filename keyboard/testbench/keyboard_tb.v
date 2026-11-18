@@ -16,8 +16,6 @@ module keyboard_tb;
     assign ps2_clk = clk_low ? 1'b0 : 1'bz;
     assign ps2_dat = dat_low ? 1'b0 : 1'bz;
 
-    wire [7:0] data;
-    wire data_valid;
     wire [3:0] action;
 
     keyboard kb (
@@ -25,16 +23,7 @@ module keyboard_tb;
         .resetn(resetn),
         .kb_clock_pin(ps2_clk),
         .kb_data_pin(ps2_dat),
-        .data(data),
-        .data_valid(data_valid)
-    );
-
-    key_decoder dec (
-        .clock(clock),
-        .data(data),
-        .data_valid(data_valid),
-        .action(action),
-        .resetn(resetn)
+        .action(action)
     );
 
     // What the checkers expect to see, filled in by send()
@@ -76,14 +65,14 @@ module keyboard_tb;
         end
     endtask
 
-    // Checks every byte the PS/2 IP hands out
+    // Checks every byte the PS/2 IP hands out (kb.data: reaches inside keyboard, simulation only)
     always @(posedge clock) begin
-        if (resetn && data_valid) begin
+        if (resetn && kb.data_valid) begin
             if (n_bytes_seen >= n_sent) begin
-                $display("%t  ERROR: extra byte %h from the IP", $time, data);
+                $display("%t  ERROR: extra byte %h from the IP", $time, kb.data);
                 errors = errors + 1;
-            end else if (data !== sent_bytes[n_bytes_seen]) begin
-                $display("%t  ERROR: IP gave byte %h, expected %h", $time, data, sent_bytes[n_bytes_seen]);
+            end else if (kb.data !== sent_bytes[n_bytes_seen]) begin
+                $display("%t  ERROR: IP gave byte %h, expected %h", $time, kb.data, sent_bytes[n_bytes_seen]);
                 errors = errors + 1;
             end
             n_bytes_seen = n_bytes_seen + 1;
@@ -94,13 +83,13 @@ module keyboard_tb;
     always @(posedge clock) begin
         if (resetn && action !== NONE) begin
             if (n_actions_seen >= n_expected) begin
-                $display("%t  ERROR: unexpected action %b (byte %h)", $time, action, data);
+                $display("%t  ERROR: unexpected action %b (byte %h)", $time, action, kb.data);
                 errors = errors + 1;
             end else if (action !== expected[n_actions_seen]) begin
-                $display("%t  ERROR: action %b, expected %b (byte %h)", $time, action, expected[n_actions_seen], data);
+                $display("%t  ERROR: action %b, expected %b (byte %h)", $time, action, expected[n_actions_seen], kb.data);
                 errors = errors + 1;
             end else
-                $display("%t  byte %h -> action %b", $time, data, action);
+                $display("%t  byte %h -> action %b", $time, kb.data, action);
             n_actions_seen = n_actions_seen + 1;
         end
     end

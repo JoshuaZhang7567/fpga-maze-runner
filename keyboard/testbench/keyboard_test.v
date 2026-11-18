@@ -13,7 +13,7 @@ module keyboard_test(CLOCK_50, KEY, PS2_CLK, PS2_DAT, LEDR);
 
     // Named connections: .port(signal) - can't be mixed up if keyboard's
     // port order ever changes
-    keyboard k (
+    keyboard_ps2 k (
         .clock(CLOCK_50),
         .resetn(KEY[0]),
         .kb_clock_pin(PS2_CLK),
