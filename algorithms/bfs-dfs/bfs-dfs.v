@@ -1,110 +1,150 @@
-`include "wall_codes.vh"
+// BFS over a 32x32 maze in maze_ram; one cell is expanded per half_second_pulse
+// Cell number = {y[4:0], x[4:0]}; the cell colours in RAM double as the visited flags
+module BFS_DFS(
+    clock, resetn, half_second_pulse, start, algorithm, start_cell, success, fail,
+    fifo_sclr, fifo_rdreq, fifo_wrreq, fifo_data, fifo_q, empty,
+    address_a, data_a, wren_a, q_a);
 
-module BFS_DFS();
+    // path is relative to this file; wall_codes.vh is in the repo root
+    `include "../../wall_codes.vh"
 
-    localparam  IDLE = 4'd0,
-                POP_REQ = 4'd1,
-                FAIL = 4'd2,
-                POP = 4'd3,
-                IS_GOAL = 4'd4,
-                DONE = 4'd5,
-                PUSH_N = 4'd6,
-                PUSH_S = 4'd7,
-                PUSH_E = 4'd8,
-                PUSH_W = 4'd9;
-    
+    input clock, resetn;
+    input half_second_pulse; // 1 for one clock cycle every 0.5 s
+    input start;
+    input algorithm;         // BFS = 0, DFS = 1; not used yet (DFS: swap the FIFO for a stack in top.v)
+    input [9:0] start_cell;
+    output success, fail;
+
+    // FIFO (fifo_1024x10, showahead off: q is valid the cycle after rdreq)
+    output reg fifo_sclr, fifo_rdreq, fifo_wrreq;
+    output reg [9:0] fifo_data;
+    input [9:0] fifo_q;
+    input empty;
+
+    // maze_ram port A: read a cell, and mark it VISITED (q_a is valid the cycle after address_a)
+    output reg [13:0] address_a;
+    output reg [2:0] data_a;
+    output reg wren_a;
+    input [2:0] q_a;
+
     localparam BFS = 1'b0, DFS = 1'b1;
 
-    reg [4:0] current_state, next_state;
-    reg [9:0] popped;
+    localparam  IDLE       = 4'd0,
+                CLEAR      = 4'd1, // empty the FIFO
+                PUSH_START = 4'd2, // push the start cell
+                WAIT       = 4'd3, // wait for the pulse, then pop
+                POP        = 4'd4, // fifo_q is valid: save it
+                ADDR       = 4'd5, // send the neighbour's address to the RAM
+                CHECK      = 4'd6, // q_a is valid: push + mark, or finish
+                DONE       = 4'd7,
+                FAIL       = 4'd8;
 
+    localparam N = 2'd0, S = 2'd1, E = 2'd2, W = 2'd3;
+
+    reg [3:0] current_state, next_state;
+    reg [9:0] popped; // the cell being expanded
+    reg [1:0] dir;    // which neighbour: N, S, E, W
+
+    // the neighbour in direction dir, and whether it is inside the maze
+    wire [4:0] x = popped[4:0];
+    wire [4:0] y = popped[9:5];
+    reg [9:0] nb;
+    reg nb_inside;
     always @(*) begin
-        case (current_state) 
-            IDLE: next_state = start ? S_CLEAR : S_IDLE;
-            POP_REQ: next_state = empty ? FAIL : POP;
-            FAIL: next_state = IDLE;
-            POP: next_state = IS_GOAL;
-            IS_GOAL: next_state = (popped == goal) ? DONE : PUSH_N;
-            PUSH_N: next_state = PUSH_S;
-            PUSH_S: next_state = PUSH_E;
-            PUSH_E: next_state = PUSH_W;
-            PUSH_W: next_state = POP_REQ;
+        case (dir)
+            N: begin 
+                nb = popped - 10'd32; 
+                nb_inside = (y != 5'd0);  
+            end
+            S: begin 
+                nb = popped + 10'd32; 
+                nb_inside = (y != 5'd31); 
+            end
+            E: begin 
+                nb = popped + 10'd1;  
+                nb_inside = (x != 5'd31); 
+            end
+            default: begin 
+                nb = popped - 10'd1; 
+                nb_inside = (x != 5'd0); 
+            end 
+        endcase
+    end
 
+    wire found = (current_state == CHECK) & nb_inside & (q_a == CODE_GOAL);
+
+    // Next state logic
+    always @(*) begin
+        case (current_state)
+            IDLE:       next_state = start ? CLEAR : IDLE;
+            CLEAR:      next_state = PUSH_START;
+            PUSH_START: next_state = WAIT;
+            WAIT: begin
+                if (!half_second_pulse) next_state = WAIT;
+                else if (empty)         next_state = FAIL;
+                else                    next_state = POP;
+            end
+            POP:   next_state = ADDR;
+            ADDR:  next_state = CHECK;
+            CHECK: begin
+                if (found)          next_state = DONE;
+                else if (dir == W)  next_state = WAIT;
+                else                next_state = ADDR;
+            end
+            DONE: next_state = DONE; // stay until reset
+            FAIL: next_state = FAIL; // stay until reset
             default: next_state = IDLE;
         endcase
     end
 
+    // Output logic
     always @(*) begin
-        case (BFS_OR_DFS)
-            BFS: begin
-                case (current_state)
-                    POP: begin
-                        fifo_rdreq = 1'b1;
-                        popped = fifo_q;          
-                    end
-                    DONE: success = 1'b1;
-                    PUSH_N: begin
-                        address_a = popped - 10'd32;
-                        if (q_a == CODE_OPEN) begin
-                            // write to fifo
-                            fifo_wrreq = 1'b1   
-                            fifo_data = popped - 10'd32;
+        fifo_sclr  = 1'b0;
+        fifo_rdreq = 1'b0;
+        fifo_wrreq = 1'b0;
+        fifo_data  = 10'd0;
+        address_a  = 14'd0;
+        data_a     = 3'd0;
+        wren_a     = 1'b0;
 
-                            // update cell colour to visited       
-                            address_b = popped - 10'd32;
-                            data_b = CODE_VISITED; 
-                            wren_b = 1'b1;
-                        end
-                    end
-                    PUSH_S: begin
-                        address_a = popped + 10'd32;
-                        if (q_a == CODE_OPEN) begin
-                            // write to fifo
-                            fifo_wrreq = 1'b1   
-                            fifo_data = popped + 10'd32;
-
-                            // update cell colour to visited       
-                            address_b = popped + 10'd32;
-                            data_b = CODE_VISITED; 
-                            wren_b = 1'b1;
-                        end
-                    end
-                    PUSH_E: begin
-                        address_a = popped + 10'd1;
-                        if (q_a == CODE_OPEN) begin
-                            // write to fifo
-                            fifo_wrreq = 1'b1   
-                            fifo_data = popped + 10'd1;
-
-                            // update cell colour to visited       
-                            address_b = popped + 10'd1;
-                            data_b = CODE_VISITED; 
-                            wren_b = 1'b1;
-                        end
-                    end
-                    PUSH_W: begin
-                        address_a = popped - 10'd1;
-                        if (q_a == CODE_OPEN) begin
-                            // write to fifo
-                            fifo_wrreq = 1'b1   
-                            fifo_data = popped - 10'd1;
-
-                            // update cell colour to visited       
-                            address_b = popped - 10'd1;
-                            data_b = CODE_VISITED; 
-                            wren_b = 1'b1;
-                        end
-                    end
-                    FAIL:
-                        failed = 1'b1
-
-                endcase
+        case (current_state)
+            CLEAR: fifo_sclr = 1'b1;
+            PUSH_START: begin
+                fifo_wrreq = 1'b1;
+                fifo_data  = start_cell;
             end
-
-            DFS: begin
-                
+            WAIT: fifo_rdreq = half_second_pulse & ~empty;
+            ADDR: address_a = {4'd0, nb};
+            CHECK: begin
+                address_a = {4'd0, nb};
+                if (nb_inside && q_a == CODE_OPEN) begin
+                    fifo_wrreq = 1'b1;          // push the neighbour
+                    fifo_data  = nb;
+                    wren_a     = 1'b1;          // and mark it VISITED
+                    data_a     = CODE_VISITED;
+                end
             end
+            default: ;
         endcase
     end
 
+    assign success = (current_state == DONE);
+    assign fail    = (current_state == FAIL);
+
+    // FFs
+    always @(posedge clock) begin
+        if (!resetn) begin
+            current_state <= IDLE;
+            popped <= 10'd0;
+            dir <= N;
+        end else begin
+            current_state <= next_state;
+            if (current_state == POP) begin
+                popped <= fifo_q;
+                dir <= N;
+            end
+            if (current_state == CHECK)
+                dir <= dir + 2'd1;
+        end
+    end
 endmodule
