@@ -38,15 +38,15 @@
 `timescale 1 ps / 1 ps
 // synopsys translate_on
 module fifo_1024x10 (
-	clock,
-	data,
-	rdreq,
-	sclr,
-	wrreq,
-	empty,
-	full,
-	q,
-	usedw);
+	clock, 
+	data, // value to add to queue
+	rdreq, // 1 = remove the oldest entry on this clock edge (dequeue)
+	sclr, // synchronous clear (active high)
+	wrreq, // 1 = add data on this clock edge (enqueue)
+	empty, 
+	full, 
+	q, // the value that was read
+	usedw); // number of entries in the queue
 
 	input	  clock;
 	input	[9:0]  data;
