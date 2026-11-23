@@ -20,11 +20,11 @@ module maze_drawer_test(CLOCK_50, KEY, SW, LEDR,
 
     // MAZE_1.mif is a 32x32 maze. 32 * 14 = 448 pixels, which fits in 480 rows
     // (SCALE_FACTOR = 16 would be 512 rows and run off the bottom of the screen).
-    parameter DIM_X = 32;
-    parameter DIM_Y = 32;
-    parameter SCALE = 14;
-    parameter ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
-    parameter ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
+    localparam DIM_X = 32;
+    localparam DIM_Y = 32;
+    localparam SCALE = 14;
+    localparam ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
+    localparam ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
 
     wire resetn = KEY[0];
 

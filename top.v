@@ -21,13 +21,14 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
 
     // ! DIM_X, DIM_Y go to BOTH maze_drawer and point_select_fsm, so they agree on the address of every cell
     // 32 * 14 = 448 pixels, which fits in 480 rows
-    parameter DIM_X = 32;
-    parameter DIM_Y = 32;
-    parameter SCALE = 14;
-    parameter ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
-    parameter ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
+    localparam DIM_X = 32;
+    localparam DIM_Y = 32;
+    localparam SCALE = 14;
+    localparam ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
+    localparam ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
 
-    parameter CODE_CURRENT = 3'b101; // color code of the cursor (yellow)
+    // color codes, CODE_CURRENT is used for the cursor (yellow)
+    `include "wall_codes.vh"
 
     wire resetn = KEY[0];
 

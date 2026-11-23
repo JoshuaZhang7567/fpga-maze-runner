@@ -11,15 +11,14 @@
 //   Every VGA write is stored in a small frame buffer. After done, the frame buffer is
 //   printed as ASCII art and every pixel is compared with the color it should have.
 module tb_maze_drawer;
-    parameter DIM = 4;
-    parameter SCALE = 2;
-    parameter X0 = 8;
-    parameter Y0 = 4;
-    parameter SIZE = DIM * SCALE;   // 8x8 pixels on screen
+    localparam DIM = 4;
+    localparam SCALE = 2;
+    localparam X0 = 8;
+    localparam Y0 = 4;
+    localparam SIZE = DIM * SCALE;   // 8x8 pixels on screen
 
-    // color codes (same as cell_color_decoder)
-    parameter CODE_WALL = 3'b000, CODE_OPEN = 3'b001, CODE_START = 3'b010, CODE_GOAL = 3'b011,
-              CODE_VISITED = 3'b100, CODE_CURRENT = 3'b101, CODE_PATH = 3'b110;
+    // color codes and RGB colors, shared with cell_color_decoder
+    `include "../wall_codes.vh"
 
     reg clock, resetn, enable;
 
@@ -76,28 +75,28 @@ module tb_maze_drawer;
     // expected 9-bit color of a color code
     function [8:0] code_to_color(input [2:0] code);
         case (code)
-            CODE_WALL:    code_to_color = 9'b111_111_111;
-            CODE_OPEN:    code_to_color = 9'b000_000_000;
-            CODE_START:   code_to_color = 9'b000_111_111;
-            CODE_GOAL:    code_to_color = 9'b111_000_111;
-            CODE_VISITED: code_to_color = 9'b000_000_111;
-            CODE_CURRENT: code_to_color = 9'b111_111_000;
-            CODE_PATH:    code_to_color = 9'b000_111_000;
-            default:      code_to_color = 9'b000_000_000;
+            CODE_WALL:    code_to_color = WALL;
+            CODE_OPEN:    code_to_color = OPEN;
+            CODE_START:   code_to_color = START;
+            CODE_GOAL:    code_to_color = GOAL;
+            CODE_VISITED: code_to_color = VISITED;
+            CODE_CURRENT: code_to_color = CURRENT;
+            CODE_PATH:    code_to_color = PATH;
+            default:      code_to_color = OPEN;
         endcase
     endfunction
 
     // one character per color, for the ASCII picture
     function [7:0] color_to_char(input [8:0] color);
         case (color)
-            9'b111_111_111: color_to_char = "#";  // wall
-            9'b000_000_000: color_to_char = ".";  // open
-            9'b000_111_111: color_to_char = "S";  // start
-            9'b111_000_111: color_to_char = "G";  // goal
-            9'b000_000_111: color_to_char = "v";  // visited
-            9'b111_111_000: color_to_char = "C";  // current
-            9'b000_111_000: color_to_char = "P";  // path
-            default:        color_to_char = "?";
+            WALL:         color_to_char = "#";  // wall
+            OPEN:         color_to_char = ".";  // open
+            START:        color_to_char = "S";  // start
+            GOAL:         color_to_char = "G";  // goal
+            VISITED:      color_to_char = "v";  // visited
+            CURRENT:      color_to_char = "C";  // current
+            PATH:         color_to_char = "P";  // path
+            default:      color_to_char = "?";
         endcase
     endfunction
 

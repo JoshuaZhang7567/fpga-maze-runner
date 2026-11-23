@@ -43,19 +43,17 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     // action: from the decoder
     input [3:0] action;
 
-    // Color codes, same as cell_color_decoder
-    parameter CODE_WALL    = 3'b000;
-    parameter CODE_START   = 3'b010;
-    parameter CODE_DEST    = 3'b011;
+    // Color codes, shared with cell_color_decoder
+    `include "../wall_codes.vh"
 
     // FSM States
-    parameter DRAW_MAZE   = 4'b0000; // keep maze_drawer started and wait until it finishes
-    parameter PICK_START  = 4'b0001; // wait for a key while picking the start
-    parameter PICK_DEST   = 4'b0010; // wait for a key while picking the destination
-    parameter START_SIM   = 4'b0011; // start the search core
-    parameter RUN_SIM     = 4'b0100; // wait until the search core finishes
-    parameter DONE        = 4'b0101; // stay here until reset
-    parameter CONFIRM     = 4'b0110; // write START/GOAL into the cell under the cursor
+    localparam DRAW_MAZE   = 4'b0000; // keep maze_drawer started and wait until it finishes
+    localparam PICK_START  = 4'b0001; // wait for a key while picking the start
+    localparam PICK_DEST   = 4'b0010; // wait for a key while picking the destination
+    localparam START_SIM   = 4'b0011; // start the search core
+    localparam RUN_SIM     = 4'b0100; // wait until the search core finishes
+    localparam DONE        = 4'b0101; // stay here until reset
+    localparam CONFIRM     = 4'b0110; // write START/GOAL into the cell under the cursor
 
     // y_Q: PS
     // Y_Q: NS
@@ -178,7 +176,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
 
     // maze_ram is only written in CONFIRM
     assign maze_wren = (y_Q == CONFIRM);
-    assign maze_data = picking_dest ? CODE_DEST : CODE_START;
+    assign maze_data = picking_dest ? CODE_GOAL : CODE_START;
 
     // draw_start stays 1 for the whole DRAW_MAZE,
     // since iterator_2d only check start signal in IDEL, so drawer wouldn't be activated twice;

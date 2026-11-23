@@ -127,21 +127,8 @@ module cell_color_decoder(color_code, color);
     input [2:0] color_code;
     output reg [8:0] color;
 
-    parameter WALL    = 9'b111_111_111; // white
-    parameter OPEN    = 9'b000_000_000; // black
-    parameter START   = 9'b000_111_111; // cyan
-    parameter GOAL    = 9'b111_000_111; // violet
-    parameter VISITED = 9'b000_000_111; // blue
-    parameter CURRENT = 9'b111_111_000; // yellow
-    parameter PATH    = 9'b000_111_000; // green
-
-    parameter CODE_WALL    = 3'b000;
-    parameter CODE_OPEN    = 3'b001;
-    parameter CODE_START   = 3'b010;
-    parameter CODE_GOAL    = 3'b011;
-    parameter CODE_VISITED = 3'b100;
-    parameter CODE_CURRENT = 3'b101;
-    parameter CODE_PATH    = 3'b110;
+    // path is relative to this file; wall_codes.vh is in the repo root
+    `include "../wall_codes.vh"
 
     always @ (*) begin
         case(color_code)
@@ -180,7 +167,7 @@ module iterator_2d(resetn, clock, start, enable, dimX, dimY, col, row, done, run
     output wire run;
 
     // FSM States
-    parameter IDLE = 2'b00, RUN = 2'b01, DONE = 2'b10;
+    localparam IDLE = 2'b00, RUN = 2'b01, DONE = 2'b10;
     // y: PS
     // Y: NS
     reg [1:0] y_Q, Y_Q;
