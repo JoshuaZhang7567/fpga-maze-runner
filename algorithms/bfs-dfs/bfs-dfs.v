@@ -1,6 +1,6 @@
 // BFS over a 32x32 maze in maze_ram; one cell is expanded per half_second_pulse
 // Cell number = {y[4:0], x[4:0]}; the cell colours in RAM double as the visited flags
-module BFS_DFS(
+module bfs_dfs(
     clock, resetn, half_second_pulse, start, algorithm, start_cell, success, fail,
     fifo_sclr, fifo_rdreq, fifo_wrreq, fifo_data, fifo_q, empty,
     address_a, data_a, wren_a, q_a);
