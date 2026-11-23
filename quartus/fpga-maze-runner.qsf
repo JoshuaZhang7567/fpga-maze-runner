@@ -897,6 +897,8 @@ set_global_assignment -name VERILOG_FILE ../maze_ram.v
 set_global_assignment -name MIF_FILE ../MAZE_1.mif
 set_global_assignment -name VERILOG_FILE ../monitor/monitor.v
 set_global_assignment -name VERILOG_FILE ../counter.v
+set_global_assignment -name VERILOG_FILE ../algorithms/search_core.v
+set_global_assignment -name VERILOG_FILE ../algorithms/bfs-dfs/bfs-dfs.v
 set_global_assignment -name VERILOG_FILE ../maze_drawer_test.v
 set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_adapter.v
 set_global_assignment -name VERILOG_FILE ../vga_adapter/vga_address_translator.v
