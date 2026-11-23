@@ -2,7 +2,7 @@
 // The start and destination are written into maze_ram as START/GOAL, then maze_drawer redraws the whole maze
 // The cursor is NOT written into maze_ram: the top level shows it on top of the maze while show_cursor is 1
 module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
-                        maze_addr, maze_data, maze_wren, draw_start, core_start, show_cursor,
+                        maze_addr, maze_data, maze_wren, draw_start, core_start, show_cursor, searching,
                         start_x, start_y, dest_x, dest_y, cursor_x, cursor_y, state);
     // ! DIM_X, DIM_Y must be the same as the ones in maze_drawer, otherwise maze_addr points at the wrong cell
     parameter DIM_X = 32;
@@ -11,7 +11,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     input clock, resetn;
 
     // draw_done: 1 for one cycle when maze_drawer finishes a redraw
-    // core_done: 1 for one cycle when the search core finishes
+    // core_done: 1 when the search core finishes
     input draw_done, core_done;
 
     // maze_cell_color: the color code read from maze_ram, it is the cell under the cursor
@@ -26,7 +26,8 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     // draw_start: start maze_drawer, 1 while we are waiting for draw_done
     // core_start: start the search core, 1 for one cycle
     // show_cursor: 1 if the top level should draw the cursor (at maze_addr) on top of the maze
-    output draw_start, core_start, show_cursor;
+    // searching: 1 while the search core runs, the top level gives maze_ram port A to the core
+    output draw_start, core_start, show_cursor, searching;
 
     // (start_x, start_y): the start that the user picked
     // (dest_x, dest_y): the destination that the user picked
@@ -179,9 +180,10 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     assign maze_data = picking_dest ? CODE_GOAL : CODE_START;
 
     // draw_start stays 1 for the whole DRAW_MAZE,
-    // since iterator_2d only check start signal in IDEL, so drawer wouldn't be activated twice;
-    assign draw_start = (y_Q == DRAW_MAZE);
+    // since iterator_2d only check start signal in IDLE, so drawer wouldn't be activated twice;
+    assign draw_start = (y_Q == DRAW_MAZE) | (y_Q == RUN_SIM) | (y_Q == DONE);
     assign core_start = (y_Q == START_SIM);
+    assign searching = (y_Q == RUN_SIM);
     // the cursor is shown until the destination is picked
     assign show_cursor = ~dest_picked;
 

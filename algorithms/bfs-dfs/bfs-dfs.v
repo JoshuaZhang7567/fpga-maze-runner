@@ -1,7 +1,7 @@
 // BFS over a 32x32 maze in maze_ram; one cell is expanded per half_second_pulse
 // Cell number = {y[4:0], x[4:0]}; the cell colours in RAM double as the visited flags
 module bfs_dfs(
-    clock, resetn, half_second_pulse, start, algorithm, start_cell, success, fail,
+    clock, resetn, half_second_pulse, start, algorithm, start_cell, current_cell, success, fail,
     fifo_sclr, fifo_rdreq, fifo_wrreq, fifo_data, fifo_q, empty,
     address_a, data_a, wren_a, q_a);
 
@@ -13,6 +13,7 @@ module bfs_dfs(
     input start;
     input algorithm;         // BFS = 0, DFS = 1; not used yet (DFS: swap the FIFO for a stack in top.v)
     input [9:0] start_cell;
+    output [9:0] current_cell; // the cell being expanded, for top.v to highlight
     output success, fail;
 
     // FIFO (fifo_1024x10, showahead off: q is valid the cycle after rdreq)
@@ -44,6 +45,8 @@ module bfs_dfs(
     reg [3:0] current_state, next_state;
     reg [9:0] popped; // the cell being expanded
     reg [1:0] dir;    // which neighbour: N, S, E, W
+
+    assign current_cell = popped;
 
     // the neighbour in direction dir, and whether it is inside the maze
     wire [4:0] x = popped[4:0];
@@ -139,6 +142,9 @@ module bfs_dfs(
             dir <= N;
         end else begin
             current_state <= next_state;
+            // current_cell shows the start until the first pop, instead of cell 0
+            if (current_state == CLEAR)
+                popped <= start_cell;
             if (current_state == POP) begin
                 popped <= fifo_q;
                 dir <= N;

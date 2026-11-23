@@ -1,33 +1,28 @@
-// Top level board test (DE1-SoC): draw the maze, then pick a start and a destination with the keyboard
-//   After reset the maze (MAZE_1.mif, 32x32) is drawn with a yellow cursor at (1, 1)
-//   W/A/S/D or arrows = move the cursor, Space = confirm the start (cyan), then the destination (violet)
-//   ! The search core is not built yet, KEY[1] pretends that it finished
-//
 //   KEY[0]    = reset (hold down to reset)
-//   KEY[1]    = pretend the search core finished (RUN_SIM -> DONE)
 //   LEDR[3:0] = state of point_select_fsm (see the FSM States in control/fsm.v)
 //   LEDR[4]   = show_cursor
+//   LEDR[5]   = searching
+//   LEDR[6]   = search succeeded
+//   LEDR[7]   = search failed
 //   LEDR[8]   = core_start was seen (start and destination are both picked)
 //   LEDR[9]   = flips on every key event (W/A/S/D, arrows, Space; press or release)
 module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
            VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
     input CLOCK_50;
-    input [3:0] KEY;            // all 4 declared to match the .qsf; KEY[1:0] used
+    input [3:0] KEY;            // all 4 declared to match the .qsf; only KEY[0] used
     inout PS2_CLK, PS2_DAT;
     output [9:0] LEDR;
 
     output [7:0] VGA_R, VGA_G, VGA_B;
     output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK;
 
-    // ! DIM_X, DIM_Y go to BOTH maze_drawer and point_select_fsm, so they agree on the address of every cell
-    // 32 * 14 = 448 pixels, which fits in 480 rows
     localparam DIM_X = 32;
     localparam DIM_Y = 32;
     localparam SCALE = 14;
     localparam ORIGIN_X = (640 - DIM_X * SCALE) / 2;   // 96: center horizontally
     localparam ORIGIN_Y = (480 - DIM_Y * SCALE) / 2;   // 16: center vertically
 
-    // color codes, CODE_CURRENT is used for the cursor (yellow)
+    // color codes
     `include "wall_codes.vh"
 
     wire resetn = KEY[0];
@@ -43,54 +38,52 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .action(action)
     );
 
-    // ---------------------------------------------------------------------------------
-    // core_done: 1 for one cycle when KEY[1] is pressed, stands in for the search core
-    // ---------------------------------------------------------------------------------
-    reg [2:0] key1_sync;        // KEY is active-low and asynchronous: synchronize it first
-    always @ (posedge CLOCK_50)
-        key1_sync <= {key1_sync[1:0], KEY[1]};
-    wire core_done = key1_sync[2] & ~key1_sync[1];   // 1 -> 0 edge
-
-    // ---------------------------------------------------------------------------------
-    // maze_ram: port A = point_select_fsm, port B = maze_drawer
-    // ---------------------------------------------------------------------------------
-    // fsm_addr, fsm_data, fsm_wren, fsm_cell_color: port A, always points at the cursor
+    // fsm_addr, fsm_data, fsm_wren: port A inputs from point_select_fsm
+    // core_addr, core_data, core_wren: port A inputs from search_core
+    // ram_cell_color: port A inputs from search_core and point_select_fsm, they won't use this port at the same time
     // draw_addr, draw_cell_color: port B, the cell that maze_drawer is drawing
-    wire [13:0] fsm_addr, draw_addr;
-    wire [2:0] fsm_data, fsm_cell_color, draw_cell_color;
-    wire fsm_wren;
+    wire [13:0] fsm_addr, core_addr, draw_addr;
+    wire [2:0] fsm_data, core_data, ram_cell_color, draw_cell_color;
+    wire fsm_wren, core_wren;
+
+    // searching: 1 during RUN_SIM. point_select_fsm and search_core never need port A at the same time,
+    // so port A is time-shared: search_core gets it while searching, point_select_fsm the rest of the time
+    wire searching;
+    wire [13:0] ram_addr_a = searching ? core_addr : fsm_addr;
+    wire [2:0]  ram_data_a = searching ? core_data : fsm_data;
+    wire        ram_wren_a = searching ? core_wren : fsm_wren;
+
     maze_ram maze_ram (
         .clock(CLOCK_50),
-        .address_a(fsm_addr),
-        .data_a(fsm_data),
-        .wren_a(fsm_wren),
-        .q_a(fsm_cell_color),
+        .address_a(ram_addr_a),
+        .data_a(ram_data_a),
+        .wren_a(ram_wren_a),
+        .q_a(ram_cell_color),
         .address_b(draw_addr),
         .data_b(3'd0),
         .wren_b(1'b0),
         .q_b(draw_cell_color)
     );
 
-    // ---------------------------------------------------------------------------------
-    // Point selection
-    // ---------------------------------------------------------------------------------
-    wire draw_start, draw_done, core_start, show_cursor;
+    wire draw_start, draw_done, core_start, core_done, show_cursor;
     wire [3:0] state;
+    wire [6:0] start_x, start_y;
     top_fsm point_select_fsm (
         .clock(CLOCK_50),
         .resetn(resetn),
         .action(action),
         .draw_done(draw_done),
         .core_done(core_done),
-        .maze_cell_color(fsm_cell_color),
+        .maze_cell_color(ram_cell_color),
         .maze_addr(fsm_addr),
         .maze_data(fsm_data),
         .maze_wren(fsm_wren),
         .draw_start(draw_start),
         .core_start(core_start),
         .show_cursor(show_cursor),
-        .start_x(),
-        .start_y(),
+        .searching(searching),
+        .start_x(start_x),
+        .start_y(start_y),
         .dest_x(),
         .dest_y(),
         .cursor_x(),
@@ -100,20 +93,36 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         defparam point_select_fsm.DIM_X = DIM_X;
         defparam point_select_fsm.DIM_Y = DIM_Y;
 
-    // ---------------------------------------------------------------------------------
-    // Cursor: drawn on top of the maze, it is never written into maze_ram
-    // ---------------------------------------------------------------------------------
-    // draw_addr_q: the address that draw_cell_color belongs to, since maze_ram has 1 cycle delay
+    wire [9:0] current_cell;
+    wire core_success, core_fail;
+    search_core search_core (
+        .clock(CLOCK_50),
+        .resetn(resetn),
+        .start(core_start),
+        .algorithm(1'b0),
+        .start_cell({start_y[4:0], start_x[4:0]}),      // = start_y * 32 + start_x
+        .current_cell(current_cell),
+        .success(core_success),
+        .fail(core_fail),
+        .maze_addr(core_addr),
+        .maze_data(core_data),
+        .maze_wren(core_wren),
+        .maze_cell_color(ram_cell_color)
+    );
+    assign core_done = core_success | core_fail;
+
+    // Delay 1 cycle, since maze_ram takes 1 cycle to get the cell_color at draw_addr
     reg [13:0] draw_addr_q;
     always @ (posedge CLOCK_50)
         draw_addr_q <= draw_addr;
 
-    // draw_color_code: CURRENT if maze_drawer is reading the cursor cell, otherwise whatever is in maze_ram
-    wire [2:0] draw_color_code = (show_cursor && draw_addr_q == fsm_addr) ? CODE_CURRENT : draw_cell_color;
+    // draw_color_code: if we are now on cursor or on current cell, draw current color
+    // The reason cursor and current related logic is different from other color is because they are not written into the RAM 
+    // Instead, they are superpositioned onto the display
+    wire on_cursor  = show_cursor && (draw_addr_q == fsm_addr);
+    wire on_current = searching   && (draw_addr_q == {4'd0, current_cell});
+    wire [2:0] draw_color_code = (on_cursor | on_current) ? CODE_CURRENT : draw_cell_color;
 
-    // ---------------------------------------------------------------------------------
-    // Maze drawer (monitor/monitor.v), started only by point_select_fsm
-    // ---------------------------------------------------------------------------------
     wire [9:0] vga_x;
     wire [8:0] vga_y;
     wire [8:0] vga_color;
@@ -136,9 +145,6 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         defparam maze_drawer.DIM_Y = DIM_Y;
         defparam maze_drawer.SCALE_FACTOR = SCALE;
 
-    // ---------------------------------------------------------------------------------
-    // VGA
-    // ---------------------------------------------------------------------------------
     vga_adapter VGA (
         .resetn(resetn),
         .clock(CLOCK_50),
@@ -159,9 +165,6 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         defparam VGA.COLOR_DEPTH = 9;
         defparam VGA.BACKGROUND_IMAGE = "UNUSED";   // no background MIF: screen starts black
 
-    // ---------------------------------------------------------------------------------
-    // Status LEDs
-    // ---------------------------------------------------------------------------------
     // started: 1 if core_start was seen
     // toggle: flips on every key event from the keyboard (action != NONE)
     reg started, toggle;
@@ -178,7 +181,9 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
 
     assign LEDR[3:0] = state;
     assign LEDR[4] = show_cursor;
-    assign LEDR[7:5] = 3'd0;
+    assign LEDR[5] = searching;
+    assign LEDR[6] = core_success;
+    assign LEDR[7] = core_fail;
     assign LEDR[8] = started;
     assign LEDR[9] = toggle;
 endmodule
