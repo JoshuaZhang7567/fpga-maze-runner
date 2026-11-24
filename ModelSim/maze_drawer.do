@@ -6,7 +6,7 @@ vsim work.tb_maze_drawer
 add wave -divider inputs
 add wave tb_maze_drawer/clock tb_maze_drawer/resetn tb_maze_drawer/enable
 add wave -divider "cell iterator"
-add wave -unsigned tb_maze_drawer/dut/cell_iterator/y_Q
+add wave -unsigned tb_maze_drawer/dut/cell_iterator/current_state
 add wave -unsigned tb_maze_drawer/dut/cx tb_maze_drawer/dut/cy
 add wave -unsigned tb_maze_drawer/maze_addr
 add wave -binary tb_maze_drawer/maze_q

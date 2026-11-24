@@ -40,10 +40,10 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
 
     // fsm_addr, fsm_data, fsm_wren: port A inputs from top_fsm
     // core_addr, core_data, core_wren: port A inputs from search_core
-    // ram_cell_color: port A inputs from search_core and top_fsm, they won't use this port at the same time
-    // draw_addr, draw_cell_color: port B, the cell that maze_drawer is drawing
+    // ram_cell_code: port A inputs from search_core and top_fsm, they won't use this port at the same time
+    // draw_addr, draw_cell_code: port B, the cell that maze_drawer is drawing
     wire [13:0] fsm_addr, core_addr, draw_addr, clean_addr;
-    wire [2:0] fsm_data, core_data, clean_data, ram_cell_color, draw_cell_color;
+    wire [2:0] fsm_data, core_data, clean_data, ram_cell_code, draw_cell_code;
     wire fsm_wren, core_wren, clean_wren;
 
     // search, cleaner, point_select never need portA at the same time.
@@ -58,11 +58,11 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .address_a(ram_addr_a),
         .data_a(ram_data_a),
         .wren_a(ram_wren_a),
-        .q_a(ram_cell_color),
+        .q_a(ram_cell_code),
         .address_b(draw_addr),
         .data_b(3'd0),
         .wren_b(1'b0),
-        .q_b(draw_cell_color)
+        .q_b(draw_cell_code)
     );
 
     wire draw_start, draw_done, core_start, core_done, clean_done, show_cursor;
@@ -77,20 +77,20 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .action(action),
         .draw_done(draw_done),
         .core_done(core_done),
-        .reset_done(clean_done),
-        .maze_cell_color(ram_cell_color),
+        .clean_done(clean_done),
+        .maze_cell_code(ram_cell_code),
         .maze_addr(fsm_addr),
         .maze_data(fsm_data),
         .maze_wren(fsm_wren),
         .draw_start(draw_start),
         .core_start(core_start),
-        .reset_start(clean_start),
+        .clean_start(clean_start),
         .show_cursor(show_cursor),
         .searching(searching),
         .start_x(start_x),
         .start_y(start_y),
-        .dest_x(),
-        .dest_y(),
+        .goal_x(),
+        .goal_y(),
         .cursor_x(),
         .cursor_y(),
         .state(state)
@@ -110,7 +110,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .maze_addr(core_addr),
         .maze_data(core_data),
         .maze_wren(core_wren),
-        .maze_cell_color(ram_cell_color)
+        .maze_cell_code(ram_cell_code)
     );
     assign core_done = core_success | core_fail;
 
@@ -120,8 +120,8 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     ) maze_cleaner(
         .resetn(resetn),
         .clock(CLOCK_50),
-        .enable(clean_start),
-        .maze_cell_color(ram_cell_color),
+        .start(clean_start),
+        .maze_cell_code(ram_cell_code),
         .maze_addr(clean_addr),
         .maze_wren(clean_wren),
         .maze_data(clean_data),
@@ -138,7 +138,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     // Instead, they are superpositioned onto the display
     wire on_cursor  = show_cursor && (draw_addr_q == fsm_addr);
     wire on_current = searching   && (draw_addr_q == {4'd0, current_cell});
-    wire [2:0] draw_color_code = (on_cursor | on_current) ? CODE_CURRENT : draw_cell_color;
+    wire [2:0] draw_color_code = (on_cursor | on_current) ? CODE_CURRENT : draw_cell_code;
 
     wire [9:0] vga_x;
     wire [8:0] vga_y;
@@ -151,11 +151,11 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     ) maze_drawer (
         .resetn(resetn),
         .clock(CLOCK_50),
-        .enable(draw_start),
-        .maze_cell_color(draw_color_code),
+        .start(draw_start),
+        .maze_cell_code(draw_color_code),
         .maze_addr(draw_addr),
-        .x(ORIGIN_X[9:0]),
-        .y(ORIGIN_Y[8:0]),
+        .origin_x(ORIGIN_X[9:0]),
+        .origin_y(ORIGIN_Y[8:0]),
         .done(draw_done),
         .vga_x(vga_x),
         .vga_y(vga_y),

@@ -21,7 +21,7 @@ module tb_rect_drawer;
     rect_drawer dut (
         .resetn(resetn),
         .clock(clock),
-        .enable(enable),
+        .start(enable),
         .h(h),
         .w(w),
         .x(x),

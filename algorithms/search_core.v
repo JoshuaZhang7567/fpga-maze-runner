@@ -1,5 +1,5 @@
 module search_core(clock, resetn, start, algorithm, start_cell, current_cell, success, fail,
-                   maze_addr, maze_data, maze_wren, maze_cell_color);
+                   maze_addr, maze_data, maze_wren, maze_cell_code);
     parameter WAIT_CYCLES = 25_000_000;
 
     input clock, resetn;
@@ -18,7 +18,7 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
     output [13:0] maze_addr;
     output [2:0] maze_data;
     output maze_wren;
-    input [2:0] maze_cell_color;
+    input [2:0] maze_cell_code;
 
     wire wait_counter_pulse;
     counter #(.W(25)) wait_counter (
@@ -65,6 +65,6 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
         .address_a(maze_addr),
         .data_a(maze_data),
         .wren_a(maze_wren),
-        .q_a(maze_cell_color)
+        .q_a(maze_cell_code)
     );
 endmodule
