@@ -223,3 +223,60 @@ module iterator_2d(resetn, clock, start, enable, dimX, dimY, col, row, done, run
     assign done = (y_Q == DONE);
     assign run = (y_Q == RUN);
 endmodule
+
+
+// Since the start/des selection module and the core logic module in the future are trying to
+// write directly to the maze ram, and we can not re-initialize the ram block at runtime
+// Therefore, we create this little moudule for resetting ram
+module maze_cleaner(resetn, clock, enable, maze_cell_color, maze_addr, maze_wren, maze_data, done);
+    parameter DIM_X = 16;
+    parameter DIM_Y = 16;
+
+    input resetn, clock, enable;
+
+    // maze_cell_color: the color code name read from the maze_ram
+    // maze_addr: the address of the maze_ram that we wanna read
+    // since address is calculated inside maze_drawer, we need to provide a output of maze_addr to ram in order to get color input
+    input [2:0] maze_cell_color; // valid 1 cycle after updating the address
+    output [13:0] maze_addr;
+
+    output done;
+    output [2:0] maze_data;
+    output maze_wren;
+
+    `include "../wall_codes.vh"
+
+    wire run;
+    reg phase; // 1 for write, 0 for read
+
+    always @ (posedge clock) begin
+        if(!resetn | !run) phase <= 1'b0;
+        else phase <= ~phase; // flip the phase to wait 1 cycle
+    end
+
+    // (cx, cy) represents the logic pixel coordinate of a cell
+    // each cell is then mapped into SCALE_FACTOR**2 physical pixels
+    wire [7:0] cx;
+    wire [6:0] cy;
+    iterator_2d cell_iterator (
+        .resetn(resetn),
+        .clock(clock),
+        .start(enable),
+        .enable(phase),
+        .dimX(DIM_X),
+        .dimY(DIM_Y),
+        .col(cx),
+        .row(cy),
+        .done(done),
+        .run(run)
+    );
+        defparam cell_iterator.NX = 8;
+        defparam cell_iterator.NY = 7;
+
+    assign maze_addr = cy*DIM_X + cx; // Similar as how we get memory address in c
+
+    wire dirty = (maze_cell_color != CODE_OPEN) & (maze_cell_color != CODE_WALL);
+
+    assign maze_wren = dirty & phase;
+    assign maze_data = CODE_OPEN;
+endmodule
