@@ -68,7 +68,10 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     wire draw_start, draw_done, core_start, core_done, show_cursor;
     wire [3:0] state;
     wire [6:0] start_x, start_y;
-    top_fsm point_select_fsm (
+    top_fsm #(
+        .DIM_X(DIM_X),
+        .DIM_Y(DIM_Y)
+    ) point_select_fsm (
         .clock(CLOCK_50),
         .resetn(resetn),
         .action(action),
@@ -90,8 +93,6 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .cursor_y(),
         .state(state)
     );
-        defparam point_select_fsm.DIM_X = DIM_X;
-        defparam point_select_fsm.DIM_Y = DIM_Y;
 
     wire [9:0] current_cell;
     wire core_success, core_fail;
@@ -127,7 +128,11 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     wire [8:0] vga_y;
     wire [8:0] vga_color;
     wire vga_write;
-    maze_drawer maze_drawer (
+    maze_drawer #(
+        .DIM_X(DIM_X),
+        .DIM_Y(DIM_Y),
+        .SCALE_FACTOR(SCALE)
+    ) maze_drawer (
         .resetn(resetn),
         .clock(CLOCK_50),
         .enable(draw_start),
@@ -141,11 +146,12 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .vga_color(vga_color),
         .vga_write(vga_write)
     );
-        defparam maze_drawer.DIM_X = DIM_X;
-        defparam maze_drawer.DIM_Y = DIM_Y;
-        defparam maze_drawer.SCALE_FACTOR = SCALE;
 
-    vga_adapter VGA (
+    vga_adapter #(
+        .RESOLUTION("640x480"),
+        .COLOR_DEPTH(9),
+        .BACKGROUND_IMAGE("UNUSED")   // no background MIF: screen starts black
+    ) VGA (
         .resetn(resetn),
         .clock(CLOCK_50),
         .color(vga_color),
@@ -161,9 +167,6 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .VGA_SYNC_N(VGA_SYNC_N),
         .VGA_CLK(VGA_CLK)
     );
-        defparam VGA.RESOLUTION = "640x480";
-        defparam VGA.COLOR_DEPTH = 9;
-        defparam VGA.BACKGROUND_IMAGE = "UNUSED";   // no background MIF: screen starts black
 
     // started: 1 if core_start was seen
     // toggle: flips on every key event from the keyboard (action != NONE)

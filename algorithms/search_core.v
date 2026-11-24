@@ -21,7 +21,7 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
     input [2:0] maze_cell_color;
 
     wire wait_counter_pulse;
-    counter wait_counter (
+    counter #(.W(25)) wait_counter (
         .resetn(resetn),
         .clock(clock),
         .init(25'd0),
@@ -31,7 +31,6 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
         .z(),
         .pulse(wait_counter_pulse)
     );
-        defparam wait_counter.W = 25;
 
     wire fifo_sclr, fifo_rdreq, fifo_wrreq, fifo_empty;
     wire [9:0] fifo_data, fifo_q;

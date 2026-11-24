@@ -85,7 +85,11 @@ module maze_drawer_test(CLOCK_50, KEY, SW, LEDR,
     // ---------------------------------------------------------------------------------
     // VGA
     // ---------------------------------------------------------------------------------
-    vga_adapter VGA (
+    vga_adapter #(
+        .RESOLUTION("640x480"),
+        .COLOR_DEPTH(9),
+        .BACKGROUND_IMAGE("UNUSED")   // no background MIF: screen starts black
+    ) VGA (
         .resetn(resetn),
         .clock(CLOCK_50),
         .color(vga_color),
@@ -101,9 +105,6 @@ module maze_drawer_test(CLOCK_50, KEY, SW, LEDR,
         .VGA_SYNC_N(VGA_SYNC_N),
         .VGA_CLK(VGA_CLK)
     );
-        defparam VGA.RESOLUTION = "640x480";
-        defparam VGA.COLOR_DEPTH = 9;
-        defparam VGA.BACKGROUND_IMAGE = "UNUSED";   // no background MIF: screen starts black
 
     // ---------------------------------------------------------------------------------
     // Status LEDs
