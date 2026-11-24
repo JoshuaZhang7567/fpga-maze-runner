@@ -1,8 +1,8 @@
 // Top level control: draw the maze, pick a start and a destination with W/A/S/D + Space, then start the search core
 // The start and destination are written into maze_ram as START/GOAL, then maze_drawer redraws the whole maze
 // The cursor is NOT written into maze_ram: the top level shows it on top of the maze while show_cursor is 1
-module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
-                        maze_addr, maze_data, maze_wren, draw_start, core_start, show_cursor, searching,
+module top_fsm(clock, resetn, action, draw_done, core_done, reset_done, maze_cell_color,
+                        maze_addr, maze_data, maze_wren, draw_start, core_start, reset_start, show_cursor, searching,
                         start_x, start_y, dest_x, dest_y, cursor_x, cursor_y, state);
     // ! DIM_X, DIM_Y must be the same as the ones in maze_drawer, otherwise maze_addr points at the wrong cell
     parameter DIM_X = 32;
@@ -12,7 +12,8 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
 
     // draw_done: 1 for one cycle when maze_drawer finishes a redraw
     // core_done: 1 when the search core finishes
-    input draw_done, core_done;
+    // reset_done: 1 when maze_cleaner finishes
+    input draw_done, core_done, reset_done;
 
     // maze_cell_color: the color code read from maze_ram, it is the cell under the cursor
     // maze_addr: the address of the maze_ram that we wanna read/write, it always points at the cursor
@@ -27,7 +28,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     // core_start: start the search core, 1 for one cycle
     // show_cursor: 1 if the top level should draw the cursor (at maze_addr) on top of the maze
     // searching: 1 while the search core runs, the top level gives maze_ram port A to the core
-    output draw_start, core_start, show_cursor, searching;
+    output draw_start, core_start, reset_start, show_cursor, searching;
 
     // (start_x, start_y): the start that the user picked
     // (dest_x, dest_y): the destination that the user picked
@@ -55,6 +56,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     localparam RUN_SIM     = 4'b0100; // wait until the search core finishes
     localparam DONE        = 4'b0101; // stay here until reset
     localparam CONFIRM     = 4'b0110; // write START/GOAL into the cell under the cursor
+    localparam RESET       = 4'b0111; // Reset the maze
 
     // y_Q: PS
     // Y_Q: NS
@@ -99,6 +101,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
 
     // Next state logic
     always @ (*) begin
+        Y_Q = y_Q;
         case(y_Q)
             // after a redraw, go back to where we came from
             DRAW_MAZE: begin
@@ -110,26 +113,24 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
             PICK_START: begin
                 if(cursor_move) Y_Q = DRAW_MAZE;
                 else if(start_valid) Y_Q = CONFIRM;
-                else Y_Q = y_Q;
             end
             PICK_DEST: begin
                 if(cursor_move) Y_Q = DRAW_MAZE;
                 else if(dest_valid) Y_Q = CONFIRM;
-                else Y_Q = y_Q;
             end
             CONFIRM: Y_Q = DRAW_MAZE;
             START_SIM: Y_Q = RUN_SIM;
-            RUN_SIM: if(core_done) Y_Q = DONE; else Y_Q = y_Q;
-            DONE: Y_Q = y_Q;
+            RUN_SIM: if(core_done) Y_Q = DONE;
+            DONE: ;
+            RESET: if(reset_done) Y_Q = DRAW_MAZE;
             default: Y_Q = DRAW_MAZE;
         endcase
     end
 
     // FFs
-    // Reset goes to DRAW_MAZE so that the maze (and the cursor) is drawn right after reset
     always @ (posedge clock) begin
         if(!resetn)
-            y_Q <= DRAW_MAZE;
+            y_Q <= RESET;
         else
             y_Q <= Y_Q;
     end
@@ -183,6 +184,7 @@ module top_fsm(clock, resetn, action, draw_done, core_done, maze_cell_color,
     // since iterator_2d only check start signal in IDLE, so drawer wouldn't be activated twice;
     assign draw_start = (y_Q == DRAW_MAZE) | (y_Q == RUN_SIM) | (y_Q == DONE);
     assign core_start = (y_Q == START_SIM);
+    assign reset_start = (y_Q == RESET);
     assign searching = (y_Q == RUN_SIM);
     // the cursor is shown until the destination is picked
     assign show_cursor = ~dest_picked;

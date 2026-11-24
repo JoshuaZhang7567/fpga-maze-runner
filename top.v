@@ -38,20 +38,20 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .action(action)
     );
 
-    // fsm_addr, fsm_data, fsm_wren: port A inputs from point_select_fsm
+    // fsm_addr, fsm_data, fsm_wren: port A inputs from top_fsm
     // core_addr, core_data, core_wren: port A inputs from search_core
-    // ram_cell_color: port A inputs from search_core and point_select_fsm, they won't use this port at the same time
+    // ram_cell_color: port A inputs from search_core and top_fsm, they won't use this port at the same time
     // draw_addr, draw_cell_color: port B, the cell that maze_drawer is drawing
-    wire [13:0] fsm_addr, core_addr, draw_addr;
-    wire [2:0] fsm_data, core_data, ram_cell_color, draw_cell_color;
-    wire fsm_wren, core_wren;
+    wire [13:0] fsm_addr, core_addr, draw_addr, clean_addr;
+    wire [2:0] fsm_data, core_data, clean_data, ram_cell_color, draw_cell_color;
+    wire fsm_wren, core_wren, clean_wren;
 
-    // searching: 1 during RUN_SIM. point_select_fsm and search_core never need port A at the same time,
-    // so port A is time-shared: search_core gets it while searching, point_select_fsm the rest of the time
-    wire searching;
-    wire [13:0] ram_addr_a = searching ? core_addr : fsm_addr;
-    wire [2:0]  ram_data_a = searching ? core_data : fsm_data;
-    wire        ram_wren_a = searching ? core_wren : fsm_wren;
+    // search, cleaner, point_select never need portA at the same time.
+    // we use a mux here to avoid Quartus Compilation Error
+    wire searching, clean_start;
+    wire [13:0] ram_addr_a = clean_start ? clean_addr : (searching ? core_addr : fsm_addr);
+    wire [2:0]  ram_data_a = clean_start ? clean_data : (searching ? core_data : fsm_data);
+    wire        ram_wren_a = clean_start ? clean_wren : (searching ? core_wren : fsm_wren);
 
     maze_ram maze_ram (
         .clock(CLOCK_50),
@@ -65,24 +65,26 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .q_b(draw_cell_color)
     );
 
-    wire draw_start, draw_done, core_start, core_done, show_cursor;
+    wire draw_start, draw_done, core_start, core_done, clean_done, show_cursor;
     wire [3:0] state;
     wire [6:0] start_x, start_y;
     top_fsm #(
         .DIM_X(DIM_X),
         .DIM_Y(DIM_Y)
-    ) point_select_fsm (
+    ) top_fsm (
         .clock(CLOCK_50),
         .resetn(resetn),
         .action(action),
         .draw_done(draw_done),
         .core_done(core_done),
+        .reset_done(clean_done),
         .maze_cell_color(ram_cell_color),
         .maze_addr(fsm_addr),
         .maze_data(fsm_data),
         .maze_wren(fsm_wren),
         .draw_start(draw_start),
         .core_start(core_start),
+        .reset_start(clean_start),
         .show_cursor(show_cursor),
         .searching(searching),
         .start_x(start_x),
@@ -111,6 +113,20 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
         .maze_cell_color(ram_cell_color)
     );
     assign core_done = core_success | core_fail;
+
+    maze_cleaner #(
+        .DIM_X(DIM_X),
+        .DIM_Y(DIM_Y)
+    ) maze_cleaner(
+        .resetn(resetn),
+        .clock(CLOCK_50),
+        .enable(clean_start),
+        .maze_cell_color(ram_cell_color),
+        .maze_addr(clean_addr),
+        .maze_wren(clean_wren),
+        .maze_data(clean_data),
+        .done(clean_done)
+    );
 
     // Delay 1 cycle, since maze_ram takes 1 cycle to get the cell_color at draw_addr
     reg [13:0] draw_addr_q;
