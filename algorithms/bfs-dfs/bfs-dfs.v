@@ -123,7 +123,7 @@ module bfs_dfs(
         address_a  = 14'd0;
         data_a     = 3'd0;
         wren_a     = 1'b0;
-        parent_addr = 10'd0;
+        parent_addr = popped;
         parent_data = 2'd0;
         parent_wren = 1'd0;
 
@@ -145,6 +145,7 @@ module bfs_dfs(
                     data_a     = CODE_VISITED;
 
                     // Update parent
+                    parent_addr = nb;
                     parent_wren = 1'b1;
                     parent_data = {dir[1], ~dir[0]}; // N <-> S, E <-> W
                 end
@@ -152,7 +153,7 @@ module bfs_dfs(
             BT_WAIT: if(half_second_pulse && popped != start_cell) begin
                 wren_a = 1'b1;
                 data_a = CODE_PATH;
-                address_a = {4'b0, popped}; // prepare the address right now, read its value on next clock cycle
+                address_a = {4'b0, popped};
             end
         endcase
     end
