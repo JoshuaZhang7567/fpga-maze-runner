@@ -98,13 +98,13 @@ module bfs_dfs(
             POP:   next_state = ADDR;
             ADDR:  next_state = CHECK;
             CHECK: begin
-                if (found)          next_state = DONE;
+                if (found)          next_state = BT_WAIT;
                 else if (dir == W)  next_state = WAIT;
                 else                next_state = ADDR;
             end
-            DONE: next_state = BT_WAIT; // stay until reset
+            DONE: next_state = DONE; // stay until reset
             BT_WAIT: begin
-                if(!half_second_pulse) next_state = BT_MOVE;
+                if(half_second_pulse) next_state = BT_MOVE;
                     else if(popped == start_cell) next_state = DONE;
                 else next_state = BT_WAIT;
             end
@@ -123,6 +123,9 @@ module bfs_dfs(
         address_a  = 14'd0;
         data_a     = 3'd0;
         wren_a     = 1'b0;
+        parent_addr = 10'd0;
+        parent_data = 2'd0;
+        parent_wren = 1'd0;
 
         case (current_state)
             CLEAR: fifo_sclr = 1'b1;
@@ -143,30 +146,13 @@ module bfs_dfs(
 
                     // Update parent
                     parent_wren = 1'b1;
-                    parent_data = {dir[1], dir[0]}; // N <-> S, E <-> W
+                    parent_data = {dir[1], ~dir[0]}; // N <-> S, E <-> W
                 end
             end
             BT_WAIT: if(half_second_pulse && popped != start_cell) begin
                 wren_a = 1'b1;
                 data_a = CODE_PATH;
                 address_a = {4'b0, popped}; // prepare the address right now, read its value on next clock cycle
-            end
-            BT_MOVE: begin
-                case(parent_q)
-                    N: begin
-                        popped <= popped - 10'd32;
-                    end
-                    S: begin
-                        popped <= popped + 10'd32;
-                    end
-                    E: begin
-                        popped <= popped + 10'd1;
-                    end
-                    W: begin
-                        popped <= popped - 10'd1;
-                    end
-                    default: ;
-                endcase
             end
         endcase
     end
@@ -185,12 +171,16 @@ module bfs_dfs(
             // current_cell shows the start until the first pop, instead of cell 0
             if (current_state == CLEAR)
                 popped <= start_cell;
-            if (current_state == POP) begin
+            else if (current_state == POP) begin
                 popped <= fifo_q;
                 dir <= N;
             end
-            if (current_state == CHECK)
+            else if (current_state == CHECK)
                 dir <= dir + 2'd1;
+            else if (current_state == BT_WAIT && half_second_pulse)
+                dir <= parent_q;
+            else if (current_state == BT_MOVE)
+                popped <= nb;
         end
     end
 endmodule

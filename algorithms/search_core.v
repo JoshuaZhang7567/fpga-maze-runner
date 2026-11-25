@@ -76,6 +76,10 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
         .address_a(maze_addr),
         .data_a(maze_data),
         .wren_a(maze_wren),
-        .q_a(maze_cell_code)
+        .q_a(maze_cell_code),
+        .parent_addr(parent_addr),
+        .parent_data(parent_data),
+        .parent_wren(parent_wren),
+        .parent_q(parent_q)
     );
 endmodule
