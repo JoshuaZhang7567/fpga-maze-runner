@@ -45,7 +45,6 @@ module top_fsm(clock, resetn, action, draw_done, core_done, clean_done, maze_cel
     // action: from the decoder
     input [3:0] action;
 
-    // Color codes, shared with cell_color_decoder
     `include "../wall_codes.vh"
 
     // FSM States
@@ -63,11 +62,11 @@ module top_fsm(clock, resetn, action, draw_done, core_done, clean_done, maze_cel
     reg [3:0] current_state, next_state;
 
     // only key presses (release bit = 0) move the cursor or confirm
-    wire w_pressed     = (action == 4'b0000); // W / Up
-    wire a_pressed     = (action == 4'b0001); // A / Left
-    wire s_pressed     = (action == 4'b0010); // S / Down
-    wire d_pressed     = (action == 4'b0011); // D / Right
-    wire space_pressed = (action == 4'b0100); // Space confirms (the decoder has no Enter)
+    wire w_pressed     = (action == 4'b0000); // W
+    wire a_pressed     = (action == 4'b0001); // A
+    wire s_pressed     = (action == 4'b0010); // S
+    wire d_pressed     = (action == 4'b0011); // D
+    wire space_pressed = (action == 4'b0100); // Confirm
 
     // picking_goal: 1 if the start is picked and we are picking the destination
     // goal_picked: 1 if the destination is picked

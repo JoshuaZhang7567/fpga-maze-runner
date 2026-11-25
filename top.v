@@ -98,7 +98,9 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
 
     wire [9:0] current_cell;
     wire core_success, core_fail;
-    search_core search_core (
+    search_core #(
+        .WAIT_CYCLES(5_000_000) // adjust simulation speed here
+    )   search_core (
         .clock(CLOCK_50),
         .resetn(resetn),
         .start(core_start),
@@ -166,7 +168,7 @@ module top(CLOCK_50, KEY, LEDR, PS2_CLK, PS2_DAT,
     vga_adapter #(
         .RESOLUTION("640x480"),
         .COLOR_DEPTH(9),
-        .BACKGROUND_IMAGE("UNUSED")   // no background MIF: screen starts black
+        .BACKGROUND_IMAGE("UNUSED")
     ) VGA (
         .resetn(resetn),
         .clock(CLOCK_50),
