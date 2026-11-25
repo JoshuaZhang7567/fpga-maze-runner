@@ -46,6 +46,17 @@ module search_core(clock, resetn, start, algorithm, start_cell, current_cell, su
         .usedw()
     );
 
+    wire parent_wren;
+    wire [9:0] parent_addr;
+    wire [1:0] parent_data, parent_q;
+    parent_ram parents (
+        .address(parent_addr),
+        .clock(clock),
+        .data(parent_data),
+        .wren(parent_wren),
+        .q(parent_q)
+    );
+
     bfs_dfs bfs (
         .clock(clock),
         .resetn(resetn),

@@ -3,7 +3,7 @@
 module bfs_dfs(
     clock, resetn, half_second_pulse, start, algorithm, start_cell, current_cell, success, fail,
     fifo_sclr, fifo_rdreq, fifo_wrreq, fifo_data, fifo_q, empty,
-    address_a, data_a, wren_a, q_a);
+    address_a, data_a, wren_a, q_a, parent_addr, parent_data, parent_wren, parent_q);
 
     // path is relative to this file; wall_codes.vh is in the repo root
     `include "../../wall_codes.vh"
@@ -28,21 +28,29 @@ module bfs_dfs(
     output reg wren_a;
     input [2:0] q_a;
 
+    // parent_ram
+    output reg [9:0] parent_addr;
+    output reg parent_wren;
+    output reg [1:0] parent_data;
+    input [1:0] parent_q;
+
     localparam BFS = 1'b0, DFS = 1'b1;
 
-    localparam  IDLE       = 4'd0,
-                CLEAR      = 4'd1, // empty the FIFO
-                PUSH_START = 4'd2, // push the start cell
-                WAIT       = 4'd3, // wait for the pulse, then pop
-                POP        = 4'd4, // fifo_q is valid: save it
-                ADDR       = 4'd5, // send the neighbour's address to the RAM
-                CHECK      = 4'd6, // q_a is valid: push + mark, or finish
-                DONE       = 4'd7,
-                FAIL       = 4'd8;
+    localparam  IDLE       = 5'd0,
+                CLEAR      = 5'd1, // empty the FIFO
+                PUSH_START = 5'd2, // push the start cell
+                WAIT       = 5'd3, // wait for the pulse, then pop
+                POP        = 5'd4, // fifo_q is valid: save it
+                ADDR       = 5'd5, // send the neighbour's address to the RAM
+                CHECK      = 5'd6, // q_a is valid: push + mark, or finish
+                DONE       = 5'd7,
+                FAIL       = 5'd8,
+                BT_WAIT    = 5'd9, // wait for the pulse and update the display
+                BT_MOVE    = 5'd10; // move according to the value read from parent_ram
 
     localparam N = 2'd0, S = 2'd1, E = 2'd2, W = 2'd3;
 
-    reg [3:0] current_state, next_state;
+    reg [4:0] current_state, next_state;
     reg [9:0] popped; // the cell being expanded
     reg [1:0] dir;    // which neighbour: N, S, E, W
 
@@ -94,7 +102,13 @@ module bfs_dfs(
                 else if (dir == W)  next_state = WAIT;
                 else                next_state = ADDR;
             end
-            DONE: next_state = DONE; // stay until reset
+            DONE: next_state = BT_WAIT; // stay until reset
+            BT_WAIT: begin
+                if(!half_second_pulse) next_state = BT_MOVE;
+                    else if(popped == start_cell) next_state = DONE;
+                else next_state = BT_WAIT;
+            end
+            BT_MOVE: next_state = BT_WAIT;
             FAIL: next_state = FAIL; // stay until reset
             default: next_state = IDLE;
         endcase
@@ -121,13 +135,39 @@ module bfs_dfs(
             CHECK: begin
                 address_a = {4'd0, nb};
                 if (nb_inside && q_a == CODE_OPEN) begin
-                    fifo_wrreq = 1'b1;          // push the neighbour
+                    // push the neighbour into FIFO
+                    fifo_wrreq = 1'b1;
                     fifo_data  = nb;
                     wren_a     = 1'b1;          // and mark it VISITED
                     data_a     = CODE_VISITED;
+
+                    // Update parent
+                    parent_wren = 1'b1;
+                    parent_data = {dir[1], dir[0]}; // N <-> S, E <-> W
                 end
             end
-            default: ;
+            BT_WAIT: if(half_second_pulse && popped != start_cell) begin
+                wren_a = 1'b1;
+                data_a = CODE_PATH;
+                address_a = {4'b0, popped}; // prepare the address right now, read its value on next clock cycle
+            end
+            BT_MOVE: begin
+                case(parent_q)
+                    N: begin
+                        popped <= popped - 10'd32;
+                    end
+                    S: begin
+                        popped <= popped + 10'd32;
+                    end
+                    E: begin
+                        popped <= popped + 10'd1;
+                    end
+                    W: begin
+                        popped <= popped - 10'd1;
+                    end
+                    default: ;
+                endcase
+            end
         endcase
     end
 
